@@ -1,4 +1,7 @@
-import math
+import math, os, exrex, json
+
+dir_path = os.path.dirname(os.path.realpath(__file__)) # Get Exact File Path
+config = json.load(open(f"{dir_path}/config.json"))
 
 my_colors = [
     "#fdbebe", "#fc9d9d", "#fb7d7d", "#fa5c5c",
@@ -20,9 +23,10 @@ test_colors = [
 ]
 
 # smaller arrays for quicker brute forcing and ease of use
-my_colors = [(20,200,200),(80,20,200),(100,20,0)]
-test_colors = [(0,0,0),(100,0,50),(10,50,200)]
-
+if config["random_palettes"]:
+    color_count = config["random_palette_color_count"]
+    my_colors = [exrex.getone("#[0-9A-F]{6}") for x in range(color_count)] # Create random palettes with [color_count] colors
+    test_colors = [exrex.getone("#[0-9A-F]{6}") for x in range(color_count)]
 
 def hex2rgb_color(hex_color): # From: Sir Vival of the PUNniest
     hex_color = int(hex_color.removeprefix('#'), 16)
@@ -167,7 +171,7 @@ my_color_scores = {x:[] for x in my_colors}
 # generate initial distance map
 for color1 in my_colors:
     for color2 in test_colors:
-        dist = distance_between_colors(color1, color2, "delta-e") # defaulting to delta-e, can change later for user input
+        dist = distance_between_colors(color1, color2, config["distance_methods"][config["distance_method_index"]])
         my_color_scores[color1].append([color2,dist])
     my_color_scores[color1] = sorted(my_color_scores[color1], key=lambda x: x[1])
 breakpoint
@@ -204,18 +208,45 @@ for color in best_scores:
         print(f"{color} = None")
     base_score += best_scores[color][0][1]
 
-# BRUTE FORCE ;)
-from itertools import permutations
+if config["brute_force"]:
+    # BRUTE FORCE ;)
+    from itertools import permutations
 
-print(f"\n{list(zip(test_colors,my_colors))}\nScore To beat: {base_score:,}")
+    print(f"Score To beat: {base_score:,}")
 
-best = base_score
-total_perms = math.factorial(len(my_colors))
-counter = 0
-for x in permutations(my_colors):
-    score = sum(distance_between_colors(col1, col2, "delta-e") for col1, col2 in zip(test_colors,x))
-    if score < best:
-        print(f"Found New Best: {(best:=score):,}  --> {list(zip(test_colors,x))}")
-    if (counter:=counter+1) % 10_000 == 0:
-        print(f"{counter} / {total_perms}\r",end="")
-print(f"\nInceased by {base_score-best:,}")
+    best = base_score
+    total_perms = math.factorial(len(my_colors))
+    counter = 0
+    better_palette = []
+    for x in permutations(my_colors):
+        score = sum(distance_between_colors(col1, col2, "delta-e") for col1, col2 in zip(test_colors,x))
+        if score < best:
+            better_palette = list(zip(test_colors,x))
+            print(f"Found New Best: {(best:=score):,}  --> {better_palette}")
+        if (counter:=counter+1) % 1000 == 0:
+            print(f"{counter} / {total_perms}\r",end="")
+    print(f"\nInceased by {base_score-best:,}")
+
+# Save Palette as image for easier viewing
+if config["save_palette_image"]:
+    from PIL import Image, ImageDraw
+    cell_size = config["palette_image_cell_size"]
+    width = cell_size*3 # 3 because, 1 - main palette; 2 - guessed matches; 3 - best matches
+    height = cell_size * len(my_colors)
+
+    img = Image.new(mode="RGB", size = (width,height))
+
+    draw = ImageDraw.Draw(img)
+    # draw main palette
+    for idx, x in enumerate(test_colors):
+        draw.rectangle((0,idx*cell_size,cell_size,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x)))
+
+    # draw guessed matches
+    for idx, x in enumerate(best_scores):
+        draw.rectangle((cell_size,idx*cell_size,cell_size*2,(idx+1)*cell_size),fill=tuple(hex2rgb_color(best_scores[x][0][0])))
+
+    # draw guessed matches
+    for idx, x in enumerate(better_palette):
+        draw.rectangle((cell_size*2,idx*cell_size,cell_size*3,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x[1])))
+
+    img.save(f"{dir_path}/test.png")

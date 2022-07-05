@@ -1,6 +1,7 @@
 import json
 import math
 import os
+from functools import lru_cache
 
 import exrex
 
@@ -88,6 +89,7 @@ def rgb2lab_color(inputColor):
 
     return Lab
 
+@lru_cache(maxsize=4096)
 def distance_between_colors(col1,col2,mode):
     ensure_rgb = lambda c: (hex2rgb_color(c) if isinstance(c, str) else c) # From: Sir Vival of the PUNniest
     rgb_col1 = ensure_rgb(col1)
@@ -173,7 +175,8 @@ def CIEDE2000(Lab_1, Lab_2):
 distances = []
 for color1 in test_colors:
     for color2 in my_colors:
-        distances.append([[color1,color2],distance_between_colors(hex2rgb_color(color1), hex2rgb_color(color2), config["distance_methods"][config["distance_method_index"]])])
+        # distances.append([[color1,color2], distance_between_colors(hex2rgb_color(color1), hex2rgb_color(color2), config["distance_methods"][config["distance_method_index"]])])
+        distances.append([[color1,color2], distance_between_colors(color1, color2, config["distance_methods"][config["distance_method_index"]])])
 #sort palette
 distances = sorted(distances,key=lambda x: x[1])
 new_matches = []
@@ -184,20 +187,56 @@ for value in distances:
         used_colours.append(value[0][0])
         used_colours.append(value[0][1])
 # calculate error
-base_error = sum(distance_between_colors(hex2rgb_color(x[0][0]), hex2rgb_color(x[0][1]), config["distance_methods"][config["distance_method_index"]]) for x in new_matches)
+# base_error = sum(distance_between_colors(hex2rgb_color(x[0][0]), hex2rgb_color(x[0][1]), config["distance_methods"][config["distance_method_index"]]) for x in new_matches)
+base_error = sum(distance_between_colors(x[0][0], x[0][1], config["distance_methods"][config["distance_method_index"]]) for x in new_matches)
 
+print(f"{new_matches = }")
 for match in new_matches:
     try:
         print(f"{match[0][0]} = {match[0][1]}, Distance: {match[1]:,}")
     except IndexError as e:
         print(f"{match[0][0]} = None")
 
+
+# Pyro - START
+print(f"Score To beat: {base_error:,}")
+pyro_matches = []
+# reverse and copy
+my_colors_reduced = my_colors.copy()
+def calc_dist(color1, color2):
+    return distance_between_colors(color1, color2, config["distance_methods"][config["distance_method_index"]])
+for color1 in test_colors:
+    _distances = [[color2, calc_dist(color1, color2)] for color2 in my_colors_reduced]
+    # find the shortest distance
+    _sorted_distances = sorted(_distances,key=lambda x: x[1])
+    print(f"{_sorted_distances = }")
+    # keep the 1st one chuck the rest
+    color2, shortest_dist = _sorted_distances[0]
+    pyro_matches.append([[color1, color2], shortest_dist])
+    # now rebuild the list of colors with 1 less element
+    my_colors_reduced = [color for color in my_colors_reduced if color != color2]
+
+
+# calculate error
+pyro_error = sum(x[1] for x in pyro_matches)
+print(f"{pyro_error = }")
+
+print(f"{pyro_matches = }")
+for match in pyro_matches:
+    try:
+        print(f"{match[0][0]} = {match[0][1]}, Distance: {match[1]:,}")
+    except IndexError as e:
+        print(f"{match[0][0]} = None")
+
+print(f"\nDiff: {pyro_error-base_error:,}")
+# Pyro - END
+
 better_palette = []
 if config["brute_force"]:
     # BRUTE FORCE ;)
     from itertools import permutations
 
-    print(f"Score To beat: {base_error:,}")
+    print(f"Score To beat: {min(pyro_error,base_error):,}")
 
     best = base_error
     total_perms = math.factorial(len(my_colors))
@@ -216,7 +255,7 @@ if config["brute_force"]:
 if config["save_palette_image"]:
     from PIL import Image, ImageDraw
     cell_size = config["palette_image_cell_size"]
-    width = cell_size*(3 if better_palette != [] else 2) # 3 because, 1 - main palette; 2 - guessed matches; 3 - best matches
+    width = cell_size*(4 if better_palette != [] else 3) # 3 because, 1 - main palette; 2 - guessed matches; 3 - best matches
     height = cell_size * len(my_colors)
 
     img = Image.new(mode="RGB", size = (width,height))
@@ -230,9 +269,13 @@ if config["save_palette_image"]:
     for idx, x in enumerate(new_matches):
         draw.rectangle((cell_size,idx*cell_size,cell_size*2,(idx+1)*cell_size),fill=tuple(hex2rgb_color(new_matches[idx][0][1])))
 
+    # draw pyros matches
+    for idx, x in enumerate(pyro_matches):
+            draw.rectangle((cell_size*2,idx*cell_size,cell_size*3,(idx+1)*cell_size),fill=tuple(hex2rgb_color(pyro_matches[idx][0][1])))
+
     # draw guessed matches
     if better_palette != []:
         for idx, x in enumerate(better_palette):
-            draw.rectangle((cell_size*2,idx*cell_size,cell_size*3,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x[1])))
+            draw.rectangle((cell_size*3,idx*cell_size,cell_size*4,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x[1])))
 
     img.save(f"{dir_path}/saved_palette_{config['distance_methods'][config['distance_method_index']]}.png")

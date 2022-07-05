@@ -1,6 +1,6 @@
 {
     "distance_methods": ["euclidian", "delta-e"],
-    "distance_method_index": 0,
+    "distance_method_index": 1,
     "brute_force": true,
     "random_palettes": true,
     "random_palette_color_count": 10,

@@ -208,6 +208,7 @@ for color in best_scores:
         print(f"{color} = None")
     base_score += best_scores[color][0][1]
 
+better_palette = []
 if config["brute_force"]:
     # BRUTE FORCE ;)
     from itertools import permutations
@@ -217,9 +218,8 @@ if config["brute_force"]:
     best = base_score
     total_perms = math.factorial(len(my_colors))
     counter = 0
-    better_palette = []
     for x in permutations(my_colors):
-        score = sum(distance_between_colors(col1, col2, "delta-e") for col1, col2 in zip(test_colors,x))
+        score = sum(distance_between_colors(col1, col2, config["distance_methods"][config["distance_method_index"]]) for col1, col2 in zip(test_colors,x))
         if score < best:
             better_palette = list(zip(test_colors,x))
             print(f"Found New Best: {(best:=score):,}  --> {better_palette}")
@@ -231,7 +231,7 @@ if config["brute_force"]:
 if config["save_palette_image"]:
     from PIL import Image, ImageDraw
     cell_size = config["palette_image_cell_size"]
-    width = cell_size*3 # 3 because, 1 - main palette; 2 - guessed matches; 3 - best matches
+    width = cell_size*(3 if better_palette != [] else 2) # 3 because, 1 - main palette; 2 - guessed matches; 3 - best matches
     height = cell_size * len(my_colors)
 
     img = Image.new(mode="RGB", size = (width,height))
@@ -246,7 +246,8 @@ if config["save_palette_image"]:
         draw.rectangle((cell_size,idx*cell_size,cell_size*2,(idx+1)*cell_size),fill=tuple(hex2rgb_color(best_scores[x][0][0])))
 
     # draw guessed matches
-    for idx, x in enumerate(better_palette):
-        draw.rectangle((cell_size*2,idx*cell_size,cell_size*3,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x[1])))
+    if better_palette != []:
+        for idx, x in enumerate(better_palette):
+            draw.rectangle((cell_size*2,idx*cell_size,cell_size*3,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x[1])))
 
-    img.save(f"{dir_path}/test.png")
+    img.save(f"{dir_path}/saved_palette_{config['distance_methods'][config['distance_method_index']]}.png")

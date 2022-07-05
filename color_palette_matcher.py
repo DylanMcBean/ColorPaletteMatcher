@@ -227,8 +227,8 @@ if config["save_palette_image"]:
         draw.rectangle((0,idx*cell_size,cell_size,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x)))
 
     # draw guessed matches
-    for idx, x in enumerate(best_scores):
-        draw.rectangle((cell_size,idx*cell_size,cell_size*2,(idx+1)*cell_size),fill=tuple(hex2rgb_color(best_scores[x][0][0])))
+    for idx, x in enumerate(new_matches):
+        draw.rectangle((cell_size,idx*cell_size,cell_size*2,(idx+1)*cell_size),fill=tuple(hex2rgb_color(new_matches[idx][0][1])))
 
     # draw guessed matches
     if better_palette != []:

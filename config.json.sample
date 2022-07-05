@@ -1,5 +1,8 @@
 {
-    "distance_methods": ["euclidian", "delta-e"],
+    "distance_methods": [
+        "euclidian",
+        "delta-e"
+    ],
     "distance_method_index": 1,
     "brute_force": true,
     "random_palettes": true,

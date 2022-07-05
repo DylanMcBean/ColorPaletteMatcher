@@ -165,57 +165,37 @@ def CIEDE2000(Lab_1, Lab_2):
     dE_00 = math.sqrt(f_L**2 + f_C**2 + f_H**2 + R_T * f_C * f_H)
     return dE_00
 
-best_scores = {x:[] for x in test_colors}
-my_color_scores = {x:[] for x in my_colors}
+# new algo
+distances = []
+for color1 in test_colors:
+    for color2 in my_colors:
+        distances.append([[color1,color2],distance_between_colors(hex2rgb_color(color1), hex2rgb_color(color2), config["distance_methods"][config["distance_method_index"]])])
+#sort palette
+distances = sorted(distances,key=lambda x: x[1])
+new_matches = []
+used_colours = []
+for value in distances:
+    if (value[0][0] not in used_colours and value[0][1] not in used_colours):
+        new_matches.append(value)
+        used_colours.append(value[0][0])
+        used_colours.append(value[0][1])
+# calculate error
+base_error = sum(distance_between_colors(hex2rgb_color(x[0][0]), hex2rgb_color(x[0][1]), config["distance_methods"][config["distance_method_index"]]) for x in new_matches)
 
-# generate initial distance map
-for color1 in my_colors:
-    for color2 in test_colors:
-        dist = distance_between_colors(color1, color2, config["distance_methods"][config["distance_method_index"]])
-        my_color_scores[color1].append([color2,dist])
-    my_color_scores[color1] = sorted(my_color_scores[color1], key=lambda x: x[1])
-breakpoint
-
-# loop until there is no changes left
-while True:
-    best_hash = hash(str(best_scores.items()) + str(my_color_scores.items()))
-    # add the first element of each score to its corosponding best score if not already there
-    for color in my_color_scores:
-        if len(my_color_scores[color]) > 0:
-            if not [color,my_color_scores[color][0][1]] in best_scores[my_color_scores[color][0][0]]:
-                best_scores[my_color_scores[color][0][0]].append([color,my_color_scores[color][0][1]])
-
-    # loop over best scores and remove the extra ones aswell as removing themselves from color_scores array
-    for color in best_scores:
-        if len(best_scores[color]):
-            best_scores[color] = sorted(best_scores[color], key=lambda x: x[1])
-            if len(best_scores[color]) > 1:
-                for color2 in best_scores[color][1:]:
-                    my_color_scores[color2[0]].remove([color,color2[1]])
-                    best_scores[color].remove(color2)
-                breakpoint
-
-    # break if there have been no changes made
-    if hash(str(best_scores.items()) + str(my_color_scores.items())) == best_hash:
-        break
-
-# print array
-base_score = 0
-for color in best_scores:
+for match in new_matches:
     try:
-        print(f"{color} = {best_scores[color][0][0]}, Distance: {best_scores[color][0][1]:,}")
+        print(f"{match[0][0]} = {match[0][1]}, Distance: {match[1]:,}")
     except IndexError as e:
-        print(f"{color} = None")
-    base_score += best_scores[color][0][1]
+        print(f"{match[0][0]} = None")
 
 better_palette = []
 if config["brute_force"]:
     # BRUTE FORCE ;)
     from itertools import permutations
 
-    print(f"Score To beat: {base_score:,}")
+    print(f"Score To beat: {base_error:,}")
 
-    best = base_score
+    best = base_error
     total_perms = math.factorial(len(my_colors))
     counter = 0
     for x in permutations(my_colors):
@@ -224,8 +204,9 @@ if config["brute_force"]:
             better_palette = list(zip(test_colors,x))
             print(f"Found New Best: {(best:=score):,}  --> {better_palette}")
         if (counter:=counter+1) % 1000 == 0:
-            print(f"{counter} / {total_perms}\r",end="")
-    print(f"\nInceased by {base_score-best:,}")
+            print(f"{counter:,} / {total_perms:,}\r",end="")
+    print(f"\nInceased by {base_error-best:,}")
+
 
 # Save Palette as image for easier viewing
 if config["save_palette_image"]:

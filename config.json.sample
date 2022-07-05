@@ -6,7 +6,7 @@
     "distance_method_index": 1,
     "brute_force": true,
     "random_palettes": true,
-    "random_palette_color_count": 10,
+    "random_palette_color_count": 8,
     "save_palette_image": true,
     "palette_image_cell_size": 32
 }

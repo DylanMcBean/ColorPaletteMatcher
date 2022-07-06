@@ -41,4 +41,4 @@ correct_first = get_correct_palette(test_colors, first_algo_result)
 correct_pyros = get_correct_palette(test_colors, pyros_algo_result)
 correct_brute = get_correct_palette(test_colors, brute_algo_result)
 
-save_palette_image([test_colors,correct_first,correct_pyros,correct_brute], 32, dir_path)
+save_palette_image([test_colors,correct_first,correct_pyros,correct_brute], config["palette_image_cell_size"], dir_path)

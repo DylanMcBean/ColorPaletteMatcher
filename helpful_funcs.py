@@ -139,30 +139,24 @@ def CIEDE2000(Lab_1, Lab_2):
     dE_00 = math.sqrt(f_L**2 + f_C**2 + f_H**2 + R_T * f_C * f_H)
     return dE_00
 
-def save_palette_image(palettes, cell_size):
+def save_palette_image(palettes, cell_size, dir_path):
     from PIL import Image, ImageDraw
 
-    width = cell_size*(4 if better_palette != [] else 3) # 3 because, 1 - main palette; 2 - guessed matches; 3 - best matches
-    height = cell_size * len(my_colors)
+    width = cell_size*len(palettes)
+    height = cell_size * len(palettes[0])
 
     img = Image.new(mode="RGB", size = (width,height))
 
     draw = ImageDraw.Draw(img)
-    # draw main palette
-    for idx, x in enumerate(test_colors):
-        draw.rectangle((0,idx*cell_size,cell_size,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x)))
-
-    # draw guessed matches
-    for idx, x in enumerate(new_matches):
-        draw.rectangle((cell_size,idx*cell_size,cell_size*2,(idx+1)*cell_size),fill=tuple(hex2rgb_color(new_matches[idx][0][1])))
-
-    # draw pyros matches
-    for idx, x in enumerate(pyro_matches):
-            draw.rectangle((cell_size*2,idx*cell_size,cell_size*3,(idx+1)*cell_size),fill=tuple(hex2rgb_color(pyro_matches[idx][0][1])))
-
-    # draw guessed matches
-    if better_palette != []:
-        for idx, x in enumerate(better_palette):
-            draw.rectangle((cell_size*3,idx*cell_size,cell_size*4,(idx+1)*cell_size),fill=tuple(hex2rgb_color(x[1])))
+    # draw palettes
+    for idx1, palette in enumerate(palettes):
+        for idx2, x in enumerate(palette):
+            draw.rectangle((idx1*cell_size,idx2*cell_size,(idx1+1)*cell_size,(idx2+1)*cell_size),fill=tuple(hex2rgb_color(x)))
 
     img.save(f"{dir_path}/saved_palette.png")
+
+def get_correct_palette(palette1,returned_palette):
+    new_array = ["" for x in palette1]
+    for value in returned_palette[1]:
+        new_array[palette1.index(value[0][0])] = value[0][1]
+    return new_array

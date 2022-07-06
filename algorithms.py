@@ -59,9 +59,10 @@ def brute_force(palette1, palette2, distance_algo):
         score = sum(distance_between_colors(col1, col2, distance_algo) for col1, col2 in zip(palette1,x))
         if best == -1 or score < best:
             better_palette = list(zip(palette1,x))
+            best = score
         if idx % 10_000 == 0:
             time_taken = time.time() - start_time
             eta = datetime.timedelta(seconds=int(time_taken * (total_perms / max(1,idx))-time_taken))
             print(f"Brute Force: [{('-' * int((idx//(total_perms/100)))):100}] ETA: {eta}\r",end="")
 
-    return best, better_palette
+    return best, [[[col1,col2],distance_between_colors(col1, col2, distance_algo)] for col1,col2 in better_palette] # formatted like others :)

@@ -37,6 +37,8 @@ first_algo_result = first_algo(test_colors, my_colors, distance_algo)
 pyros_algo_result = pyro_algorithm(test_colors, my_colors, distance_algo)
 brute_algo_result = brute_force(test_colors, my_colors, distance_algo)
 
-#save_palette_image(palettes, 32)
+correct_first = get_correct_palette(test_colors, first_algo_result)
+correct_pyros = get_correct_palette(test_colors, pyros_algo_result)
+correct_brute = get_correct_palette(test_colors, brute_algo_result)
 
-breakpoint
+save_palette_image([test_colors,correct_first,correct_pyros,correct_brute], 32, dir_path)

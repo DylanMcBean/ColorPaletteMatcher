@@ -1,5 +1,10 @@
+import datetime
+import sys
+import time
+from itertools import permutations
+
 from helpful_funcs import *
-import sys, time, datetime
+
 
 def first_algo(palette1, palette2, distance_algo):
     # new algo
@@ -20,7 +25,7 @@ def first_algo(palette1, palette2, distance_algo):
     # calculate error
     # base_error = sum(distance_between_colors(hex2rgb_color(x[0][0]), hex2rgb_color(x[0][1]), config["distance_methods"][config["distance_method_index"]]) for x in new_matches)
     base_error = sum(distance_between_colors(x[0][0], x[0][1], distance_algo) for x in new_matches)
-    
+
     return base_error, new_matches
 
 def pyro_algorithm(palette1, palette2, distance_algo):
@@ -44,14 +49,12 @@ def pyro_algorithm(palette1, palette2, distance_algo):
 
     # calculate error
     pyro_error = sum(x[1] for x in pyro_matches)
-    
+
     return pyro_error, pyro_matches
 
 def brute_force(palette1, palette2, distance_algo):
     better_palette = []
     # BRUTE FORCE ;)
-    from itertools import permutations
-
     best = -1
     total_perms = math.factorial(len(palette2))
     start_time = time.time()
